@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Drugs Bazaar</string>
+    <string name="enter_dbzid">Enter Drugs Bazaar Id</string>
+    <string name="hint_name">Enter Name..</string>
+    <string name="hint_address">Enter Address..</string>
+    <string name="hint_town">Enter Town/City</string>
+    <string name="hint_dl_num">Enter DL Number..</string>
+    <string name="hint_tin_num">Enter TIN Number..</string>
+    <string name="hint_phne">Enter Phone Number</string>
+</resources>
