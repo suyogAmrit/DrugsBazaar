@@ -9,5 +9,6 @@ public class AppConstants {
     public static final String DIALOGTITLE = "Please Wait";
     public static final String SEARCHDBZIDMSG = "Searching Distributor";
     public static final String TRYAGAIN = "Please Try Again";
-    public static final String REGISTERUSERMSG = "Creating User";
+    public static final String REGISTERUSERMSG = "Registering User..";
+    public static final String CHECKUSERDETAILS = "Checking User Details..";
 }

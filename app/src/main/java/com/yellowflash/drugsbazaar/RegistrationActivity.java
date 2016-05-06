@@ -2,9 +2,9 @@ package com.yellowflash.drugsbazaar;
 
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -29,6 +29,11 @@ import org.apache.http.util.EntityUtils;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
 import java.util.List;
 
 public class RegistrationActivity extends AppCompatActivity {
@@ -80,6 +85,7 @@ public class RegistrationActivity extends AppCompatActivity {
                 } else {
                     if (AppHelper.isConnectingToInternet(RegistrationActivity.this)) {
                         new Register().execute();
+
                     }
                 }
             }
@@ -100,6 +106,26 @@ public class RegistrationActivity extends AppCompatActivity {
         spnType.setAdapter(adapter);
     }
 
+    private String createCsvFile(List<String[]> list) {
+        String path = Environment.getExternalStorageDirectory().getAbsolutePath();
+        File csvFileDir = new File(path + "/DolphinApp/", "Files");
+        csvFileDir.mkdir();
+        String csvFilePath = csvFileDir.getAbsolutePath() + "/collection.csv";
+        File file = new File(csvFilePath);
+        if (file.exists()) {
+            file.delete();
+        }
+        try {
+            CSVWriter writer = new CSVWriter(new FileWriter(csvFilePath));
+            writer.writeAll(list);
+            writer.close();
+            return csvFilePath;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private class Register extends AsyncTask<Void, Void, String> {
         ProgressDialog dialog;
 
@@ -118,6 +144,7 @@ public class RegistrationActivity extends AppCompatActivity {
             super.onPostExecute(s);
             dialog.dismiss();
             Log.i("response", s);
+            new CheckUserSatus().execute(name, town);
         }
 
         @Override
@@ -126,22 +153,23 @@ public class RegistrationActivity extends AppCompatActivity {
                 StringBuilder requestBuilder = new StringBuilder();
                 requestBuilder.append("compid,name,add1,add2,town,area,type,dlno1,dlno2,dlno3,tin,srin,mobile,mfg");
                 requestBuilder.append("\n");
-                requestBuilder.append("0").append(",")
-                        .append(name).append(",")
-                        .append(address).append(",")
-                        .append("").append(",")
-                        .append(town).append(",")
-                        .append("").append(",")
-                        .append(selectedType).append(",")
-                        .append(dlNum).append(",")
-                        .append("").append(",")
-                        .append("").append(",")
-                        .append(tinNum).append("").append(",")
-                        .append(phnNum).append(",")
-                        .append("");
-
+                requestBuilder.append("0").append(",'")
+                        .append(name).append("','")
+                        .append(address).append("','")
+                        .append("").append("','")
+                        .append(town).append("','")
+                        .append("").append("','")
+                        .append(selectedType).append("','")
+                        .append(dlNum).append("','")
+                        .append("").append("','")
+                        .append("").append("','")
+                        .append(tinNum).append("','")
+                        .append("").append("','")
+                        .append(phnNum).append("','")
+                        .append("'");
+                Log.i("Data", requestBuilder.toString());
                 byte[] bytes = requestBuilder.toString().getBytes();
-                ByteArrayBody bab = new ByteArrayBody(bytes, "Company.csv");
+                ByteArrayBody bab = new ByteArrayBody(bytes, "company.csv");
                 String postReceiverUrl = "http://117.218.1.164/dbz/compreg.aspx";
                 HttpClient httpclient = new DefaultHttpClient();
 
@@ -161,23 +189,66 @@ public class RegistrationActivity extends AppCompatActivity {
         }
     }
 
-    private String createCsvFile(List<String[]> list) {
-        String path = Environment.getExternalStorageDirectory().getAbsolutePath();
-        File csvFileDir = new File(path + "/DolphinApp/", "Files");
-        csvFileDir.mkdir();
-        String csvFilePath = csvFileDir.getAbsolutePath() + "/collection.csv";
-        File file = new File(csvFilePath);
-        if (file.exists()) {
-            file.delete();
+    private class CheckUserSatus extends AsyncTask<String, Void, String> {
+        ProgressDialog dialog;
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            dialog = new ProgressDialog(RegistrationActivity.this);
+            dialog.setTitle(AppConstants.DIALOGTITLE);
+            dialog.setMessage(AppConstants.CHECKUSERDETAILS);
+            dialog.show();
         }
-        try {
-            CSVWriter writer = new CSVWriter(new FileWriter(csvFilePath));
-            writer.writeAll(list);
-            writer.close();
-            return csvFilePath;
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        @Override
+        protected void onPostExecute(String s) {
+
+            super.onPostExecute(s);
+            dialog.dismiss();
+            Log.i("response", s);
         }
-        return null;
+
+        @Override
+        protected String doInBackground(String... params) {
+            Connection conn = null;
+            try {
+                String driver = "net.sourceforge.jtds.jdbc.Driver";
+                Class.forName(driver).newInstance();
+
+                String connString = "jdbc:jtds:sqlserver://117.218.1.164/myfins";
+                String username = "dbz";
+                String password = "Password1";
+                conn = DriverManager.getConnection(connString, username, password);
+                Log.w("Connection", "open");
+                Statement stmt = conn.createStatement();
+                ResultSet reset = stmt.executeQuery("select drgbzrid,compid from company where compname='" + params[0] + "' and comptown='" + params[1] + "'");
+                StringBuilder sb = new StringBuilder();
+                ResultSetMetaData rsmd = reset.getMetaData();
+                Log.i("Columns", String.valueOf(reset.getRow()));
+// create arraylist
+                if (reset.getRow() > 0) {
+                    while (reset.next()) {
+                        //create Company object
+                        for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                            Log.i("Vaue", reset.getString(i));
+                            sb.append(reset.getString(i)).append(",");
+                            //set company data
+                            // connect csv writer
+                            // fill data in local database
+                        }
+                        //add company to arralist
+                        sb.append("\n");
+                    }
+                }
+                // insert arraylist to database
+                Log.i("Result", sb.toString());
+                conn.close();
+                return sb.toString();
+            } catch (Exception e) {
+                Log.w("Error connection", "" + e.getMessage());
+            }
+            return null;
+        }
     }
 }
